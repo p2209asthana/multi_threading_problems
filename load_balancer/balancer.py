@@ -6,7 +6,7 @@ class Server:
         self.name = name 
         self.connections = 0
         self.healthy = True
-        self.lock = threading.Lock()  # Added for thread-safe connection updates
+        self.lock = threading.Lock()  
         
 class RWLock:
     def __init__(self):
@@ -26,7 +26,7 @@ class RWLock:
         def __enter__(self):
             self.acquire()
 
-        def __exit__(self, a, b, c):  # Fixed: was missing underscore
+        def __exit__(self, a, b, c): 
             self.release()
     
         def acquire(self):
@@ -52,7 +52,7 @@ class RWLock:
         def __enter__(self):
             self.acquire()
 
-        def __exit__(self, a, b, c):  # Fixed: was missing underscore
+        def __exit__(self, a, b, c): 
             self.release()
         
         def acquire(self):
@@ -67,7 +67,7 @@ class ThreadSafeLoadBalancer:
 
     def __init__(self, servers):
         self.servers = {}
-        self.servers_list = []  # Fixed: consistent naming
+        self.servers_list = []
         for server in servers:
             self.servers[server] = Server(server)
             self.servers_list.append(server)
@@ -81,7 +81,7 @@ class ThreadSafeLoadBalancer:
         with self.server_collection_lock.read_lock():
             if not self.servers_list:
                 return None
-            if algorithm == "round_robin":  # Fixed: consistent naming
+            if algorithm == "round_robin": 
                 return self._get_rr_server()
             elif algorithm == "least_connections":
                 return self._get_lc_server()
@@ -90,9 +90,9 @@ class ThreadSafeLoadBalancer:
            
     def _get_rr_server(self):
         with self.rr_lock:
-            server_idx = self.rr_next_index % len(self.servers_list)  # Fixed: use servers_list
+            server_idx = self.rr_next_index % len(self.servers_list)
             server = self.servers_list[server_idx]
-            self.rr_next_index = (server_idx + 1) % len(self.servers_list)  # Fixed: increment properly
+            self.rr_next_index = (server_idx + 1) % len(self.servers_list)  
             return server
 
     def _get_lc_server(self):
@@ -111,37 +111,35 @@ class ThreadSafeLoadBalancer:
         # If no healthy server found, return first available
         if selected_server is None and self.servers_list:
             selected_server = self.servers_list[0]
-            
-                    return selected_server
+            return selected_server
         
     def add_server(self, server):
-        with self.server_collection_lock.write_lock():  # Fixed: missing colon
+        with self.server_collection_lock.write_lock(): 
             if server not in self.servers:
                 self.servers[server] = Server(server)
                 self.servers_list.append(server)
 
     def remove_server(self, server):
-        with self.server_collection_lock.write_lock():  # Fixed: missing colon
+        with self.server_collection_lock.write_lock(): 
             if server in self.servers:
                 del self.servers[server]
-                self.servers_list.remove(server)  # Fixed: use servers_list
+                self.servers_list.remove(server) 
                 return True
             return False
 
     def record_connection(self, server):
-        # Fixed: Use read lock since we're not modifying the collection structure
+        # Use read lock since we're not modifying the collection structure
         # and add proper thread-safe connection increment
         server_obj = self.servers.get(server)
         if server_obj:
             with server_obj.lock:
-                server_obj.connections += 1  # Fixed: was trying to increment dict
+                server_obj.connections += 1  
 
     def record_disconnection(self, server):
-        # Fixed: Use read lock and proper thread-safe connection decrement
         server_obj = self.servers.get(server)
         if server_obj:
             with server_obj.lock:
-                server_obj.connections = max(0, server_obj.connections - 1)  # Fixed: prevent negative
+                server_obj.connections = max(0, server_obj.connections - 1)  
 
     def get_server_stats(self) -> Dict[str, int]:
         """Return current connection count for all servers."""
